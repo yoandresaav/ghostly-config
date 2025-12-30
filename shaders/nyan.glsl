@@ -179,30 +179,27 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     fragColor = texture(iChannel0, fragCoord.xy / iResolution.xy);
     #endif
 
-    // --- CURSOR STYLE CHECK ---
-    // iCursorStyle: 0=Block, 1=Hollow, 2=Bar, 3=Underline
-    // If it's a Bar (2), we skip the cat and just draw a simple bar.
-    if (int(iCursorStyle) == 2) {
-        vec2 vu = normalize_coords(fragCoord, 1.);
-        vec4 currentCursor = vec4(normalize_coords(iCurrentCursor.xy, 1.), normalize_coords(iCurrentCursor.zw, 0.));
-        
-        // Simple bar calculation (left side of the cursor area)
-        float barWidth = currentCursor.z * 0.2; 
-        vec2 barCenter = vec2(currentCursor.x + barWidth * 0.5, currentCursor.y - currentCursor.w * 0.5);
-        float sdfBar = sdBox(vu - barCenter, vec2(barWidth * 0.5, currentCursor.w * 0.5));
-        
-        float barAlpha = antialising(sdfBar);
-        // Use a bright color for the bar cursor in Neovim
-        fragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), barAlpha);
-        return;
-    }
-
     // Normalization
     vec2 vu = normalize_coords(fragCoord, 1.);
     vec2 offsetFactor = vec2(-.5, 0.5);
     
     vec4 currentCursor = vec4(normalize_coords(iCurrentCursor.xy, 1.), normalize_coords(iCurrentCursor.zw, 0.));
     vec4 previousCursor = vec4(normalize_coords(iPreviousCursor.xy, 1.), normalize_coords(iPreviousCursor.zw, 0.));
+
+    // --- CURSOR STYLE CHECK (DISABLED) ---
+    // The detection logic was inconsistent across environments.
+    // Commenting out to ensure the Nyan Cat is always visible for now.
+    /*
+    if (currentCursor.z < 0.015) {
+        float barWidth = currentCursor.z;
+        barWidth = max(barWidth, 0.004);
+        vec2 barCenter = vec2(currentCursor.x + barWidth * 0.5, currentCursor.y - currentCursor.w * 0.5);
+        float sdfBar = sdBox(vu - barCenter, vec2(barWidth * 0.5, currentCursor.w * 0.5));
+        float barAlpha = antialising(sdfBar);
+        fragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), barAlpha);
+        return;
+    }
+    */
 
     vec2 centerCC = currentCursor.xy - (currentCursor.zw * offsetFactor);
     vec2 centerCP = previousCursor.xy - (previousCursor.zw * offsetFactor);
