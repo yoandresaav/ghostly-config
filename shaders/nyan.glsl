@@ -243,14 +243,22 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     // Draw cat at current cursor position (centerCC)
     // Scale depends on cursor size (currentCursor.zw)
     
-    // Enforce minimum size to prevent disappearing
-    vec2 cursorSize = max(currentCursor.zw, vec2(0.02, 0.04));
+    // Stabilize cursor size:
+    // 1. Enforce minimum width (0.02) to prevent disappearing.
+    // 2. Clamp maximum width (0.05) to prevent cat "jumping" or becoming huge if cursor style changes.
+    // This fixed range keeps the cat size consistent even if focus is lost or cursor style shifts.
+    vec2 cursorSize = clamp(currentCursor.zw, vec2(0.02, 0.04), vec2(0.05, 0.1));
     
     vec4 catColor = drawNyanCat(vu - centerCC, cursorSize);
     
+    // --- SMART TRANSPARENCY ---
+    // Detect if we are covering text (assuming dark background)
+    // If pixel luminosity is high (text), reduce cat opacity significantly (to 0.05)
+    float textBrightness = length(finalColor.rgb);
+    float opacity = mix(0.9, 0.05, smoothstep(0.1, 0.5, textBrightness));
+
     // Composite Cat over Trail/Terminal
-    // Use 0.9 alpha max to allow slight see-through if it accidentally covers text
-    finalColor = mix(finalColor, catColor, catColor.a * 0.9);
+    finalColor = mix(finalColor, catColor, catColor.a * opacity);
 
     fragColor = finalColor;
 }
