@@ -34,7 +34,7 @@ vec4 drawNyanCat(vec2 p, vec2 size) {
     vec4 color = vec4(0.0);
     
     // Scale cat relative to cursor width
-    float scale = size.x * 3.5; // Cat is larger than cursor
+    float scale = size.x * 2.25; // Reduced by another 5% (was 2.4)
     vec2 catP = p / scale;
 
     // --- FIXES ---
@@ -179,6 +179,24 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     fragColor = texture(iChannel0, fragCoord.xy / iResolution.xy);
     #endif
 
+    // --- CURSOR STYLE CHECK ---
+    // iCursorStyle: 0=Block, 1=Hollow, 2=Bar, 3=Underline
+    // If it's a Bar (2), we skip the cat and just draw a simple bar.
+    if (int(iCursorStyle) == 2) {
+        vec2 vu = normalize_coords(fragCoord, 1.);
+        vec4 currentCursor = vec4(normalize_coords(iCurrentCursor.xy, 1.), normalize_coords(iCurrentCursor.zw, 0.));
+        
+        // Simple bar calculation (left side of the cursor area)
+        float barWidth = currentCursor.z * 0.2; 
+        vec2 barCenter = vec2(currentCursor.x + barWidth * 0.5, currentCursor.y - currentCursor.w * 0.5);
+        float sdfBar = sdBox(vu - barCenter, vec2(barWidth * 0.5, currentCursor.w * 0.5));
+        
+        float barAlpha = antialising(sdfBar);
+        // Use a bright color for the bar cursor in Neovim
+        fragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), barAlpha);
+        return;
+    }
+
     // Normalization
     vec2 vu = normalize_coords(fragCoord, 1.);
     vec2 offsetFactor = vec2(-.5, 0.5);
@@ -244,10 +262,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     // Scale depends on cursor size (currentCursor.zw)
     
     // Stabilize cursor size:
-    // 1. Enforce minimum width (0.02) to prevent disappearing.
-    // 2. Clamp maximum width (0.05) to prevent cat "jumping" or becoming huge if cursor style changes.
-    // This fixed range keeps the cat size consistent even if focus is lost or cursor style shifts.
-    vec2 cursorSize = clamp(currentCursor.zw, vec2(0.02, 0.04), vec2(0.05, 0.1));
+    // FORCE a fixed size constant. Do NOT use currentCursor.zw which changes on focus loss.
+    // This ensures the cat is identical size/position regardless of focus state.
+    vec2 cursorSize = vec2(0.04, 0.08); 
     
     vec4 catColor = drawNyanCat(vu - centerCC, cursorSize);
     
